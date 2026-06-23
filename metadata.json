@@ -1,0 +1,6 @@
+{
+  "name": "Daily Thought Counter",
+  "description": "An interactive, beautifully animated mobile first tracking app that counts daily thoughts with spring-physics feedback, custom particle bursts, and a weekly Bento Grid check-in.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
