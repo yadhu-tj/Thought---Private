@@ -46,15 +46,15 @@ export function CounterPage({ count, onIncrement, onNavigateToGrid }: CounterPag
   };
 
   return (
-    <div className="flex flex-col items-center justify-between flex-1 px-6 pt-10 pb-20 overflow-y-auto bg-[#050505]">
-      <div className="text-center space-y-3 mt-4 w-full">
+    <div className="flex flex-col items-center justify-between flex-1 px-6 py-10 md:px-12 md:py-16 overflow-y-auto bg-[#050505] w-full min-h-full">
+      <div className="text-center space-y-3 mt-4 w-full max-w-sm">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/10 rounded-md">
           <Brain className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
           <span className="text-[10px] font-mono text-indigo-400 font-semibold uppercase tracking-[0.25em]">
             MIND_LOG / V.1.0
           </span>
         </div>
-        <h2 className="text-[#F5F5F5] font-light tracking-tight text-3xl font-sans mt-2">
+        <h2 className="text-[#F5F5F5] font-light tracking-tight text-3xl md:text-4xl font-sans mt-2">
           Daily Intensity
         </h2>
       </div>
@@ -63,14 +63,14 @@ export function CounterPage({ count, onIncrement, onNavigateToGrid }: CounterPag
         <RollingNumber value={count} />
       </div>
 
-      <div className="relative flex items-center justify-center my-8">
+      <div className="relative flex items-center justify-center my-8 shrink-0">
         <div className="absolute w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-[90px] pointer-events-none" />
 
-        <div className="absolute w-72 h-72 rounded-full border border-white/5 animate-[spin_40s_linear_infinite]" />
-        <div className="absolute w-56 h-56 rounded-full border border-dashed border-white/10 animate-[spin_25s_linear_infinite_reverse]" />
+        <div className="absolute w-72 h-72 rounded-full border border-white/5 animate-[spin_40s_linear_infinite] will-change-transform" />
+        <div className="absolute w-56 h-56 rounded-full border border-dashed border-white/10 animate-[spin_25s_linear_infinite_reverse] will-change-transform" />
 
         <div className="relative z-10 group">
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity will-change-[opacity,transform]" />
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.90, y: 7 }}
@@ -81,7 +81,7 @@ export function CounterPage({ count, onIncrement, onNavigateToGrid }: CounterPag
               mass: 0.5,
             }}
             onClick={handlePress}
-            className="relative flex items-center justify-center w-52 h-52 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 p-[1px] shadow-[0_0_60px_-15px_rgba(99,102,241,0.5)] focus:outline-none cursor-pointer"
+            className="relative flex items-center justify-center w-52 h-52 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 p-[1px] shadow-[0_0_60px_-15px_rgba(99,102,241,0.5)] focus:outline-none cursor-pointer will-change-transform"
           >
             <div className="w-full h-full rounded-full bg-[#050505] flex flex-col items-center justify-center overflow-hidden relative">
               <div className="absolute inset-0 bg-white/[0.04]" />
@@ -112,7 +112,7 @@ export function CounterPage({ count, onIncrement, onNavigateToGrid }: CounterPag
           whileHover={{ x: 4, scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
           onClick={onNavigateToGrid}
-          className="w-full py-4 px-6 rounded-3xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 flex items-center justify-between text-[#F5F5F5] font-mono text-xs uppercase tracking-wider transition-colors duration-200"
+          className="w-full py-4 px-6 rounded-3xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 flex items-center justify-between text-[#F5F5F5] font-mono text-xs uppercase tracking-wider transition-colors duration-200 md:hidden"
         >
           <div className="flex items-center gap-3">
             <Sparkles className="w-4 h-4 text-indigo-400" />

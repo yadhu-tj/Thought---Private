@@ -27,6 +27,7 @@ export function ParticleEffect({ particles, onComplete }: ParticleEffectProps) {
             width: p.size,
             height: p.size,
             boxShadow: `0 0 12px ${p.color}`,
+            willChange: "transform, opacity",
           }}
           initial={{ x: "-50%", y: "-50%", scale: 1, opacity: 1 }}
           animate={{

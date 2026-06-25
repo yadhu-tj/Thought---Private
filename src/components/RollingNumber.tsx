@@ -23,7 +23,7 @@ function RollingDigit({ digit, isMobile }: RollingDigitProps) {
   return (
     <div className="relative overflow-hidden h-20 md:h-28 w-11 md:w-16 flex justify-center">
       <motion.div
-        className="absolute top-0 left-0 right-0 flex flex-col"
+        className="absolute top-0 left-0 right-0 flex flex-col will-change-transform"
         animate={{ y: -num * size }}
         transition={{
           type: "spring",

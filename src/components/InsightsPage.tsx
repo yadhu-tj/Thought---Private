@@ -64,11 +64,11 @@ export function InsightsPage({
   const totalCompleted = Object.values(records).filter((r) => r.completed).length;
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto px-6 pt-6 pb-28 bg-[#050505]">
+    <div className="flex-1 flex flex-col h-full overflow-y-auto px-6 py-6 md:px-12 md:py-10 pb-28 md:pb-12 bg-[#050505]">
       <div className="space-y-6 mb-6">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <h2 className="text-3xl font-light tracking-tight text-[#F5F5F5]">
+            <h2 className="text-3xl md:text-4xl font-light tracking-tight text-[#F5F5F5]">
               Cognitive Insights
             </h2>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-400">
@@ -79,7 +79,7 @@ export function InsightsPage({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onNavigateToCounter}
-            className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-[#0A0A0A] hover:bg-white/[0.04] cursor-pointer"
+            className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-[#0A0A0A] hover:bg-white/[0.04] cursor-pointer md:hidden"
           >
             <Activity className="w-4 h-4 text-pink-500 animate-pulse" />
           </motion.button>
@@ -113,24 +113,26 @@ export function InsightsPage({
       </div>
 
       <div className="space-y-6">
-        <div className="space-y-2">
-          <h3 className="text-sm font-mono text-white/40 uppercase tracking-widest px-1">
-            Streak Calendar
-          </h3>
-          <StreakCalendar records={records} onToggleDayComplete={onToggleDayComplete} />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="space-y-2">
+            <h3 className="text-sm font-mono text-white/40 uppercase tracking-widest px-1">
+              Streak Calendar
+            </h3>
+            <StreakCalendar records={records} onToggleDayComplete={onToggleDayComplete} />
+          </div>
 
-        <div className="space-y-2">
-          <h3 className="text-sm font-mono text-white/40 uppercase tracking-widest px-1">
-            Comparison & Velocity
-          </h3>
-          <ComparisonGraph data={graphData} />
+          <div className="space-y-2">
+            <h3 className="text-sm font-mono text-white/40 uppercase tracking-widest px-1">
+              Comparison & Velocity
+            </h3>
+            <ComparisonGraph data={graphData} />
+          </div>
         </div>
 
         <div className="bg-white/[0.01] border border-white/5 rounded-3xl p-5 flex gap-3 items-start">
           <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
           <p className="text-[11px] leading-relaxed text-white/40 font-sans">
-            Your streak indicator maps consecutive check-ins. Stanadalone completed days are highlighted in blue droplets, while streaks are wrapped in an energetic orange gradient pill. Keep up the high concentration flow!
+            Your streak indicator maps consecutive check-ins. Standalone completed days are highlighted in blue droplets, while streaks are wrapped in an energetic orange gradient pill. Keep up the high concentration flow!
           </p>
         </div>
       </div>

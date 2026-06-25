@@ -19,25 +19,28 @@ export function BentoGrid({ days, onToggleComplete }: BentoGridProps) {
     const isSpanned = index === 0 || index === 3 || index === 6;
     if (completed) {
       if (index === 0) {
-        return "col-span-2 bg-gradient-to-br from-indigo-950/60 to-purple-950/40 border-indigo-500/30 shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] text-white";
+        return "col-span-2 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-indigo-950/60 to-purple-950/40 border-indigo-500/30 shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] text-white";
       }
       if (index === 3) {
-        return "col-span-2 bg-gradient-to-br from-pink-950/60 to-purple-950/40 border-pink-500/30 shadow-[0_0_25px_-5px_rgba(236,72,153,0.15)] text-white";
+        return "col-span-2 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-pink-950/60 to-purple-950/40 border-pink-500/30 shadow-[0_0_25px_-5px_rgba(236,72,153,0.15)] text-white";
       }
       if (index === 6) {
-        return "col-span-2 bg-[#6366f1] border-white/10 shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)] text-white";
+        return "col-span-2 md:col-span-1 lg:col-span-4 bg-[#6366f1] border-white/10 shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)] text-white";
       }
-      return "col-span-1 bg-white/[0.08] border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.05)] text-white";
+      return "col-span-1 md:col-span-1 lg:col-span-1 bg-white/[0.08] border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.05)] text-white";
     }
 
     if (isSpanned) {
-      return "col-span-2 bg-[#0A0A0A] border-white/5 text-[#F5F5F5] hover:bg-white/[0.02]";
+      if (index === 6) {
+        return "col-span-2 md:col-span-1 lg:col-span-4 bg-[#0A0A0A] border-white/5 text-[#F5F5F5] hover:bg-white/[0.02]";
+      }
+      return "col-span-2 md:col-span-2 lg:col-span-2 bg-[#0A0A0A] border-white/5 text-[#F5F5F5] hover:bg-white/[0.02]";
     }
-    return "col-span-1 bg-white/[0.03] border-white/15 text-[#F5F5F5] hover:bg-white/[0.05]";
+    return "col-span-1 md:col-span-1 lg:col-span-1 bg-white/[0.03] border-white/15 text-[#F5F5F5] hover:bg-white/[0.05]";
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 pb-24">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24 md:pb-8">
       {days.map((day, idx) => {
         const isSpanned = idx === 0 || idx === 3 || idx === 6;
         return (
