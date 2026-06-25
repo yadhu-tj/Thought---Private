@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Grid, Wifi, Battery, Signal, Flame, Trophy, Sparkles } from 'lucide-react';
+import { Brain, Grid, Calendar, Wifi, Battery, Signal, Flame, Trophy, Sparkles } from 'lucide-react';
 import { CounterPage } from './components/CounterPage';
 import { BentoGrid, DayRecord } from './components/BentoGrid';
+import { InsightsPage } from './components/InsightsPage';
 
 interface LocalRecord {
   count: number;
@@ -19,7 +20,7 @@ function getLocalDateString(date: Date): string {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'counter' | 'grid'>('counter');
+  const [activeTab, setActiveTab] = useState<'counter' | 'grid' | 'insights'>('counter');
   const [records, setRecords] = useState<RecordsMap>({});
   const [timeString, setTimeString] = useState('12:00');
 
@@ -154,14 +155,14 @@ export default function App() {
                   onNavigateToGrid={() => setActiveTab('grid')}
                 />
               </motion.div>
-            ) : (
+            ) : activeTab === 'grid' ? (
               <motion.div
                 key="grid"
                 initial={{ opacity: 0, x: 65 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -65 }}
                 transition={{ type: "spring", stiffness: 240, damping: 22 }}
-                className="flex-1 flex flex-col h-full overflow-y-auto px-6 pt-6 pb-24 bg-[#0A0A0A]"
+                className="flex-1 flex flex-col h-full overflow-y-auto px-6 pt-6 pb-28 bg-[#0A0A0A]"
               >
                 <div className="space-y-6 mb-6">
                   <div className="flex justify-between items-start">
@@ -176,10 +177,10 @@ export default function App() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setActiveTab('counter')}
-                      className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-[#050505] hover:bg-white/[0.04]"
+                      onClick={() => setActiveTab('insights')}
+                      className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-[#050505] hover:bg-white/[0.04] cursor-pointer"
                     >
-                      <div className="w-2 h-2 bg-pink-500 rounded-full" />
+                      <Calendar className="w-4 h-4 text-indigo-450" />
                     </motion.button>
                   </div>
 
@@ -212,14 +213,30 @@ export default function App() {
 
                 <BentoGrid days={daysList} onToggleComplete={toggleDayComplete} />
               </motion.div>
+            ) : (
+              <motion.div
+                key="insights"
+                initial={{ opacity: 0, x: 65 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -65 }}
+                transition={{ type: "spring", stiffness: 240, damping: 22 }}
+                className="flex-1 flex flex-col h-full"
+              >
+                <InsightsPage
+                  records={records}
+                  daysList={daysList}
+                  onToggleDayComplete={toggleDayComplete}
+                  onNavigateToCounter={() => setActiveTab('counter')}
+                />
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        <div className="absolute bottom-6 left-6 right-6 z-40 bg-[#050505]/80 backdrop-blur-xl border border-white/10 rounded-2xl py-2 px-6 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+        <div className="absolute bottom-6 left-6 right-6 z-40 bg-[#050505]/80 backdrop-blur-xl border border-white/10 rounded-2xl py-2 px-4 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
           <button
             onClick={() => setActiveTab('counter')}
-            className={`flex flex-col items-center gap-1.5 py-1 px-3.5 rounded-xl relative ${
+            className={`flex flex-col items-center gap-1.5 py-1 px-3.5 rounded-xl relative cursor-pointer ${
               activeTab === 'counter' ? "text-white" : "text-white/40 hover:text-white/60"
             }`}
           >
@@ -238,7 +255,7 @@ export default function App() {
 
           <button
             onClick={() => setActiveTab('grid')}
-            className={`flex flex-col items-center gap-1.5 py-1 px-3.5 rounded-xl relative ${
+            className={`flex flex-col items-center gap-1.5 py-1 px-3.5 rounded-xl relative cursor-pointer ${
               activeTab === 'grid' ? "text-white" : "text-white/40 hover:text-white/60"
             }`}
           >
@@ -252,6 +269,25 @@ export default function App() {
             <Grid className="w-4 h-4 relative z-10" />
             <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
               Weekly
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('insights')}
+            className={`flex flex-col items-center gap-1.5 py-1 px-3.5 rounded-xl relative cursor-pointer ${
+              activeTab === 'insights' ? "text-white" : "text-white/40 hover:text-white/60"
+            }`}
+          >
+            {activeTab === 'insights' && (
+              <motion.div
+                layoutId="navPill"
+                className="absolute inset-0 bg-white/[0.03] border border-white/10 rounded-xl"
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
+              />
+            )}
+            <Calendar className="w-4 h-4 relative z-10" />
+            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
+              Insights
             </span>
           </button>
         </div>
