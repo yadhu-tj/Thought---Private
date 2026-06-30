@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Grid, Calendar, Flame, Trophy, Sparkles, Settings, Loader2, AlertCircle } from 'lucide-react';
+import { Brain, Grid, Calendar, Flame, Trophy, Sparkles, Settings, Loader2, AlertCircle, Lock } from 'lucide-react';
 import { CounterPage } from './components/CounterPage';
 import { BentoGrid, DayRecord } from './components/BentoGrid';
 import { InsightsPage } from './components/InsightsPage';
@@ -34,6 +34,52 @@ export default function App() {
   });
   const [syncErrorMessage, setSyncErrorMessage] = useState("");
   const [pendingSyncData, setPendingSyncData] = useState<RecordsMap | null>(null);
+
+  // PIN protection for settings
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const [isSettingNewPin, setIsSettingNewPin] = useState(false);
+
+  const savedPin = localStorage.getItem("thought-tracker-pin");
+
+  const handleSettingsAttempt = () => {
+    if (!savedPin) {
+      // No PIN set yet — prompt to create one
+      setIsSettingNewPin(true);
+      setPinInput("");
+      setPinError(false);
+      setIsPinModalOpen(true);
+    } else {
+      // PIN exists — prompt to enter it
+      setIsSettingNewPin(false);
+      setPinInput("");
+      setPinError(false);
+      setIsPinModalOpen(true);
+    }
+  };
+
+  const handlePinSubmit = () => {
+    if (isSettingNewPin) {
+      if (pinInput.length === 4) {
+        localStorage.setItem("thought-tracker-pin", pinInput);
+        setIsPinModalOpen(false);
+        setPinInput("");
+        setIsSettingsOpen(true);
+      } else {
+        setPinError(true);
+      }
+    } else {
+      if (pinInput === savedPin) {
+        setIsPinModalOpen(false);
+        setPinInput("");
+        setIsSettingsOpen(true);
+      } else {
+        setPinError(true);
+        setPinInput("");
+      }
+    }
+  };
 
   // Sync API helpers
   const fetchGistData = async (pat: string, id: string): Promise<RecordsMap> => {
@@ -296,7 +342,7 @@ export default function App() {
             
             {/* Sync Settings Tab Button */}
             <button
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={handleSettingsAttempt}
               className="w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl cursor-pointer text-xs uppercase tracking-wider font-mono font-semibold text-white/40 hover:text-white/80 hover:bg-white/[0.02] transition-all duration-200"
             >
               <Settings className="w-4 h-4 text-indigo-400/80" />
@@ -359,13 +405,6 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 h-screen overflow-hidden flex flex-col relative bg-[#050505]">
-        {/* Mobile Settings Gear Trigger */}
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="md:hidden absolute top-6 right-6 z-45 w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-[#050505]/60 backdrop-blur-md hover:bg-white/[0.04] cursor-pointer text-white/50 hover:text-white transition-all shadow-lg active:scale-95 hover:scale-105"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
 
         <div className="flex-1 overflow-hidden flex flex-col relative">
           <AnimatePresence mode="wait">
@@ -518,6 +557,16 @@ export default function App() {
             <Calendar className="w-4 h-4 relative z-10" />
             <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
               Insights
+            </span>
+          </button>
+
+          <button
+            onClick={handleSettingsAttempt}
+            className="flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer text-white/40 hover:text-white/60"
+          >
+            <Settings className="w-4 h-4 relative z-10" />
+            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
+              Settings
             </span>
           </button>
         </div>
@@ -700,6 +749,90 @@ export default function App() {
                   className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-mono text-xs uppercase tracking-wider font-semibold transition-all hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] cursor-pointer"
                 >
                   Save & Sync
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* PIN Entry Modal */}
+      <AnimatePresence>
+        {isPinModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setIsPinModalOpen(false); setPinInput(""); setPinError(false); }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              className="bg-[#0D0D0D] border border-white/10 rounded-[32px] p-8 w-full max-w-xs relative z-10 shadow-[0_30px_70px_rgba(0,0,0,0.9)] flex flex-col items-center"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-5">
+                <Lock className="w-6 h-6 text-indigo-400" />
+              </div>
+
+              <h3 className="text-lg font-medium text-white mb-1 tracking-tight">
+                {isSettingNewPin ? "Create PIN" : "Enter PIN"}
+              </h3>
+              <p className="text-[11px] text-white/40 font-mono mb-6 text-center">
+                {isSettingNewPin ? "Set a 4-digit numeric PIN to protect settings." : "Enter your 4-digit PIN to access settings."}
+              </p>
+
+              {/* PIN Dots Display */}
+              <div className="flex gap-3 mb-6">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                      pinInput.length > i
+                        ? pinError ? "bg-rose-500 border-rose-500" : "bg-indigo-400 border-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.6)]"
+                        : "border-white/20 bg-transparent"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {pinError && (
+                <p className="text-rose-400 text-[10px] font-mono mb-4 animate-pulse">
+                  {isSettingNewPin ? "PIN must be at least 4 digits" : "Incorrect PIN. Try again."}
+                </p>
+              )}
+
+              {/* Numpad */}
+              <div className="grid grid-cols-3 gap-3 w-full max-w-[220px]">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => { if (pinInput.length < 4) { setPinError(false); setPinInput(prev => prev + String(num)); } }}
+                    className="h-14 rounded-2xl bg-white/[0.04] border border-white/[0.06] text-white text-lg font-medium hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPinInput(prev => prev.slice(0, -1))}
+                  className="h-14 rounded-2xl bg-white/[0.02] border border-white/[0.04] text-white/50 text-xs font-mono font-bold hover:bg-white/[0.06] active:scale-95 transition-all cursor-pointer"
+                >
+                  DEL
+                </button>
+                <button
+                  onClick={() => { if (pinInput.length < 4) { setPinError(false); setPinInput(prev => prev + "0"); } }}
+                  className="h-14 rounded-2xl bg-white/[0.04] border border-white/[0.06] text-white text-lg font-medium hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
+                >
+                  0
+                </button>
+                <button
+                  onClick={handlePinSubmit}
+                  className="h-14 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-mono font-bold hover:bg-indigo-500/30 active:scale-95 transition-all cursor-pointer"
+                >
+                  OK
                 </button>
               </div>
             </motion.div>
