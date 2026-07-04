@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Grid, Calendar, Flame, Trophy, Sparkles, Settings, Loader2, AlertCircle, Lock } from 'lucide-react';
+import { Brain, Grid, Calendar, Flame, Trophy, Sparkles, Settings, Loader2, AlertCircle, Lock, Menu, X, BookOpen } from 'lucide-react';
 import { CounterPage } from './components/CounterPage';
 import { BentoGrid, DayRecord } from './components/BentoGrid';
 import { InsightsPage } from './components/InsightsPage';
+import { NotesPage } from './components/NotesPage';
 
 interface LocalRecord {
   count: number;
@@ -20,8 +21,9 @@ function getLocalDateString(date: Date): string {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'counter' | 'grid' | 'insights'>('counter');
+  const [activeTab, setActiveTab] = useState<'counter' | 'grid' | 'insights' | 'notes'>('counter');
   const [records, setRecords] = useState<RecordsMap>({});
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Gist synchronization states
   const [gitPat, setGitPat] = useState(() => localStorage.getItem("thought-tracker-git-pat") || "");
@@ -44,6 +46,7 @@ export default function App() {
   const savedPin = localStorage.getItem("thought-tracker-pin");
 
   const handleSettingsAttempt = () => {
+    setMobileMenuOpen(false);
     if (!savedPin) {
       // No PIN set yet — prompt to create one
       setIsSettingNewPin(true);
@@ -339,6 +342,16 @@ export default function App() {
               <Calendar className="w-4 h-4 text-amber-400" />
               <span>Insights</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl relative cursor-pointer text-xs uppercase tracking-wider font-mono font-semibold transition-all duration-200 ${
+                activeTab === 'notes' ? "text-white bg-white/[0.04] border border-white/10 shadow-md" : "text-white/40 hover:text-white/80 hover:bg-white/[0.02]"
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-cyan-400" />
+              <span>Notes</span>
+            </button>
             
             {/* Sync Settings Tab Button */}
             <button
@@ -405,6 +418,96 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 h-screen overflow-hidden flex flex-col relative bg-[#050505]">
+        {/* Mobile Header with Hamburger */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#0A0A0A] z-30">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/15">
+              <Brain className="w-4 h-4" />
+            </div>
+            <h1 className="text-sm font-bold">Thought Tracker</h1>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+          >
+            {mobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Hamburger Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="md:hidden absolute top-14 left-0 right-0 bg-[#0A0A0A] border-b border-white/5 z-30 p-4 space-y-2"
+            >
+              <button
+                onClick={() => {
+                  setActiveTab('counter');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
+                  activeTab === 'counter' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
+                }`}
+              >
+                <Brain className="w-4 h-4 text-indigo-400" />
+                Counter
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('grid');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
+                  activeTab === 'grid' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
+                }`}
+              >
+                <Grid className="w-4 h-4 text-pink-400" />
+                Weekly
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('insights');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
+                  activeTab === 'insights' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
+                }`}
+              >
+                <Calendar className="w-4 h-4 text-amber-400" />
+                Insights
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('notes');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
+                  activeTab === 'notes' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-cyan-400" />
+                Notes
+              </button>
+              <button
+                onClick={() => {
+                  handleSettingsAttempt();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold text-white/60 hover:text-white transition-all"
+              >
+                <Settings className="w-4 h-4 text-indigo-400" />
+                Sync Settings
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="flex-1 overflow-hidden flex flex-col relative">
           <AnimatePresence mode="wait">
@@ -481,7 +584,7 @@ export default function App() {
 
                 <BentoGrid days={daysList} onToggleComplete={toggleDayComplete} />
               </motion.div>
-            ) : (
+            ) : activeTab === 'insights' ? (
               <motion.div
                 key="insights"
                 initial={{ opacity: 0, y: 15 }}
@@ -497,12 +600,23 @@ export default function App() {
                   onNavigateToCounter={() => setActiveTab('counter')}
                 />
               </motion.div>
+            ) : (
+              <motion.div
+                key="notes"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ type: "spring", stiffness: 240, damping: 22 }}
+                className="flex-1 flex flex-col h-full overflow-hidden"
+              >
+                <NotesPage />
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
 
         {/* Mobile Navigation Pill */}
-        <div className="md:hidden absolute bottom-6 left-6 right-6 z-40 bg-[#050505]/80 backdrop-blur-xl border border-white/10 rounded-2xl py-2 px-4 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+        <div className="md:hidden absolute bottom-6 left-6 right-6 z-40 bg-[#050505]/80 backdrop-blur-xl border border-white/10 rounded-2xl py-2 px-4 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
           <button
             onClick={() => setActiveTab('counter')}
             className={`flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer ${
@@ -557,6 +671,25 @@ export default function App() {
             <Calendar className="w-4 h-4 relative z-10" />
             <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
               Insights
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('notes')}
+            className={`flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer ${
+              activeTab === 'notes' ? "text-white" : "text-white/40 hover:text-white/60"
+            }`}
+          >
+            {activeTab === 'notes' && (
+              <motion.div
+                layoutId="navPill"
+                className="absolute inset-0 bg-white/[0.03] border border-white/10 rounded-xl"
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
+              />
+            )}
+            <BookOpen className="w-4 h-4 relative z-10" />
+            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
+              Notes
             </span>
           </button>
 
@@ -658,7 +791,7 @@ export default function App() {
                         await triggerSyncPull();
                       }}
                       disabled={syncStatus === 'syncing'}
-                      className="px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/25 text-[10px] font-mono font-semibold text-indigo-400 disabled:opacity-40 cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/25 text-[10px] font-mono font-semibold text-indigo-400 disabled:opacity-40 transition-all cursor-pointer"
                     >
                       Sync Now
                     </button>
@@ -682,7 +815,7 @@ export default function App() {
                       value={gitPat}
                       onChange={(e) => setGitPat(e.target.value)}
                       placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxx"
-                      className="w-full bg-[#141414] border border-white/10 rounded-2xl py-3 px-4 text-sm text-white placeholder-white/20 focus:outline-none focus:border-indigo-500/50 font-mono transition-colors"
+                      className="w-full bg-[#141414] border border-white/10 rounded-2xl py-3 px-4 text-sm text-white placeholder-white/20 focus:outline-none focus:border-indigo-500/50 font-mono transition-all"
                     />
                   </div>
 
@@ -695,7 +828,7 @@ export default function App() {
                       value={gistId}
                       onChange={(e) => setGistId(e.target.value)}
                       placeholder="32-character hex Gist ID"
-                      className="w-full bg-[#141414] border border-white/10 rounded-2xl py-3 px-4 text-sm text-white placeholder-white/20 focus:outline-none focus:border-indigo-500/50 font-mono transition-colors"
+                      className="w-full bg-[#141414] border border-white/10 rounded-2xl py-3 px-4 text-sm text-white placeholder-white/20 focus:outline-none focus:border-indigo-500/50 font-mono transition-all"
                     />
                   </div>
                 </div>
@@ -746,7 +879,7 @@ export default function App() {
                     triggerSyncPull(cleanPat, cleanId);
                     setIsSettingsOpen(false);
                   }}
-                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-mono text-xs uppercase tracking-wider font-semibold transition-all hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] cursor-pointer"
+                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-mono text-xs uppercase tracking-wider font-semibold transition-all hover:shadow-[0_0_30px_rgba(129,78,247,0.4)] cursor-pointer"
                 >
                   Save & Sync
                 </button>
