@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Calendar, TrendingUp } from 'lucide-react';
+import { Check, TrendingUp } from 'lucide-react';
 
 interface DayData {
   label: string;
@@ -15,39 +15,37 @@ interface ComparisonGraphProps {
 export function ComparisonGraph({ data }: ComparisonGraphProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const maxCount = Math.max(...data.map(d => d.count), 5);
-  const totalCounts = data.reduce((acc, d) => acc + d.count, 0);
-  const avgCounts = parseFloat((totalCounts / data.length).toFixed(1));
-
-  const chartHeight = 120;
+  const totalCompleted = data.filter((d) => d.completed).length;
+  const completionRate = Math.round((totalCompleted / (data.length || 1)) * 100);
+  const chartHeight = 110;
 
   return (
-    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    <div className="bg-[#14171d] border border-white/[0.07] rounded-2xl p-6 relative">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-indigo-400">
-            Cognitive Distribution
+          <span className="text-xs font-medium text-stone-400">
+            Weekly Performance
           </span>
-          <h3 className="font-sans font-light text-xl tracking-tight text-[#F5F5F5] mt-1">
-            Weekly Intensity
+          <h3 className="text-lg font-semibold text-white tracking-tight mt-0.5">
+            Consistency Trend
           </h3>
         </div>
-        <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded-xl py-1 px-3 text-[10px] font-mono text-white/50">
-          <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Avg: {avgCounts} / day</span>
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs font-medium text-stone-300">
+          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="font-mono tabular-nums">{completionRate}%</span>
         </div>
       </div>
 
       <div className="relative h-44 flex items-end justify-between px-2 pt-6">
-        <div className="absolute inset-x-0 top-6 bottom-0 flex flex-col justify-between pointer-events-none">
-          <div className="w-full border-b border-white/[0.02]" />
-          <div className="w-full border-b border-white/[0.02]" />
-          <div className="w-full border-b border-white/[0.02]" />
-          <div className="w-full border-b border-white/[0.02]" />
+        {/* Subtle Hairline Dividers */}
+        <div className="absolute inset-x-0 top-6 bottom-8 flex flex-col justify-between pointer-events-none">
+          <div className="w-full border-b border-white/[0.04]" />
+          <div className="w-full border-b border-white/[0.04]" />
+          <div className="w-full border-b border-white/[0.04]" />
         </div>
 
         {data.map((day, idx) => {
-          const barHeight = maxCount > 0 ? (day.count / maxCount) * chartHeight : 0;
+          const barHeight = day.completed ? chartHeight : 18;
           const isHovered = hoveredIdx === idx;
 
           return (
@@ -60,33 +58,34 @@ export function ComparisonGraph({ data }: ComparisonGraphProps) {
               <div className="h-32 flex items-end justify-center w-full relative">
                 <motion.div
                   initial={{ height: 0 }}
-                  animate={{ height: `${Math.max(barHeight, 4)}px` }}
-                  transition={{ type: "spring", stiffness: 100, damping: 15, delay: idx * 0.05 }}
-                  className={`w-4 md:w-5 rounded-t-full relative transition-all duration-300 ${
+                  animate={{ height: `${barHeight}px` }}
+                  transition={{ type: "spring", stiffness: 120, damping: 16, delay: idx * 0.04 }}
+                  className={`w-6 md:w-8 rounded-lg relative transition-all duration-200 flex items-center justify-center ${
                     day.completed
-                      ? "bg-gradient-to-t from-indigo-600 via-purple-600 to-pink-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                      : "bg-white/10 group-hover:bg-white/20"
+                      ? "bg-emerald-500 shadow-[0_2px_12px_rgba(16,185,129,0.25)]"
+                      : "bg-white/[0.06] group-hover:bg-white/[0.1]"
                   }`}
-                />
+                >
+                  {day.completed && (
+                    <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                  )}
+                </motion.div>
 
                 {isHovered && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className="absolute bottom-[105%] bg-slate-950/90 backdrop-blur-md border border-white/10 py-1.5 px-2.5 rounded-xl z-30 shadow-xl flex flex-col items-center text-center pointer-events-none min-w-[70px]"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute bottom-[108%] bg-[#0c0e12] border border-white/15 py-1.5 px-3 rounded-lg z-30 shadow-xl flex flex-col items-center text-center pointer-events-none min-w-[76px]"
                   >
-                    <span className="text-[9px] font-mono font-bold uppercase text-white/50">{day.label}</span>
-                    <span className="text-sm font-bold text-white mt-0.5">{day.count} logged</span>
-                    {day.completed && (
-                      <span className="text-[8px] text-pink-400 font-semibold mt-0.5 uppercase tracking-wide">
-                        Completed
-                      </span>
-                    )}
+                    <span className="text-[10px] text-stone-400 font-medium">{day.label}</span>
+                    <span className={`text-xs font-semibold mt-0.5 ${day.completed ? "text-emerald-400" : "text-stone-400"}`}>
+                      {day.completed ? "Done" : "Missed"}
+                    </span>
                   </motion.div>
                 )}
               </div>
 
-              <span className={`text-[10px] font-mono mt-3 transition-colors duration-200 ${isHovered ? 'text-white font-bold' : 'text-white/40'}`}>
+              <span className={`text-xs mt-3 transition-colors ${isHovered ? 'text-white font-medium' : 'text-stone-400'}`}>
                 {day.label}
               </span>
             </div>
@@ -94,21 +93,18 @@ export function ComparisonGraph({ data }: ComparisonGraphProps) {
         })}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse" />
-          <div>
-            <div className="text-xs text-white/50 font-mono">HIGHEST LOG</div>
-            <div className="text-sm font-bold text-white">{maxCount} thoughts</div>
-          </div>
+      <div className="mt-6 pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-4 text-xs">
+        <div>
+          <span className="text-stone-400 block">Completed Days</span>
+          <span className="text-sm font-semibold text-white mt-0.5 block font-mono tabular-nums">
+            {totalCompleted} of {data.length} registered
+          </span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-          <div>
-            <div className="text-xs text-white/50 font-mono">TOTAL LOGGED</div>
-            <div className="text-sm font-bold text-white">{totalCounts} thoughts</div>
-          </div>
+        <div>
+          <span className="text-stone-400 block">Weekly Rate</span>
+          <span className="text-sm font-semibold text-emerald-400 mt-0.5 block font-mono tabular-nums">
+            {completionRate}% success
+          </span>
         </div>
       </div>
     </div>

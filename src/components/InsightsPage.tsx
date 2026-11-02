@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Sparkles, Calendar, TrendingUp, Flame, Trophy, Activity, Info } from 'lucide-react';
+import { Flame, Trophy, Info, Calendar } from 'lucide-react';
 import { StreakCalendar } from './StreakCalendar';
 import { ComparisonGraph } from './ComparisonGraph';
 
@@ -9,12 +9,6 @@ interface LocalRecord {
 }
 
 type RecordsMap = Record<string, LocalRecord>;
-
-interface DayData {
-  label: string;
-  count: number;
-  completed: boolean;
-}
 
 interface InsightsPageProps {
   records: RecordsMap;
@@ -41,7 +35,7 @@ export function InsightsPage({
     let streak = 0;
     const today = new Date();
     
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 60; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const y = d.getFullYear();
@@ -61,51 +55,53 @@ export function InsightsPage({
     return streak;
   })();
 
-  const totalCompleted = Object.values(records).filter((r) => r.completed).length;
+  const totalCompleted = (Object.values(records) as LocalRecord[]).filter((r) => r.completed).length;
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto px-6 py-6 md:px-12 md:py-10 pb-28 md:pb-12 bg-[#050505]">
+    <div className="flex-1 flex flex-col h-full overflow-y-auto px-6 py-6 md:px-12 md:py-10 pb-28 md:pb-12 bg-[#0c0e12]">
       <div className="space-y-6 mb-6">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <h2 className="text-3xl md:text-4xl font-light tracking-tight text-[#F5F5F5]">
-              Cognitive Insights
+            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
+              History & Insights
             </h2>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-400">
-              Streak & Analysis Systems
+            <p className="text-xs text-stone-400">
+              Overview of your consistency and active habit streaks
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={onNavigateToCounter}
-            className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-[#0A0A0A] hover:bg-white/[0.04] cursor-pointer md:hidden"
+            className="px-3 py-1.5 border border-white/[0.08] rounded-lg text-xs font-medium text-stone-300 hover:text-white hover:bg-white/[0.04] cursor-pointer md:hidden"
           >
-            <Activity className="w-4 h-4 text-pink-500 animate-pulse" />
-          </motion.button>
+            Check In
+          </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-5 flex items-center gap-4">
-            <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/15">
-              <Flame className="w-4 h-4" />
+        <div className="grid grid-cols-2 gap-3.5">
+          <div className="bg-[#14171d] border border-white/[0.07] rounded-2xl p-5 flex items-center gap-4">
+            <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
+              <Flame className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xl font-bold font-sans tracking-tight">{activeStreak} Days</div>
-              <div className="text-[9px] text-white/40 font-bold uppercase tracking-widest font-mono">
-                Current Streak
+              <div className="text-2xl font-bold font-mono tracking-tight text-white tabular-nums">
+                {activeStreak} {activeStreak === 1 ? "Day" : "Days"}
+              </div>
+              <div className="text-xs text-stone-400 font-medium">
+                Active Streak
               </div>
             </div>
           </div>
 
-          <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-5 flex items-center gap-4">
-            <div className="p-2.5 bg-pink-500/10 rounded-xl text-pink-400 border border-pink-500/15">
-              <Trophy className="w-4 h-4" />
+          <div className="bg-[#14171d] border border-white/[0.07] rounded-2xl p-5 flex items-center gap-4">
+            <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
+              <Trophy className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xl font-bold font-sans tracking-tight">{totalCompleted} Total</div>
-              <div className="text-[9px] text-white/40 font-bold uppercase tracking-widest font-mono">
-                Check-ins
+              <div className="text-2xl font-bold font-mono tracking-tight text-white tabular-nums">
+                {totalCompleted}
+              </div>
+              <div className="text-xs text-stone-400 font-medium">
+                Total Check-ins
               </div>
             </div>
           </div>
@@ -115,24 +111,24 @@ export function InsightsPage({
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div className="space-y-2">
-            <h3 className="text-sm font-mono text-white/40 uppercase tracking-widest px-1">
-              Streak Calendar
+            <h3 className="text-xs font-medium text-stone-400 px-1">
+              Monthly Calendar
             </h3>
             <StreakCalendar records={records} onToggleDayComplete={onToggleDayComplete} />
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-mono text-white/40 uppercase tracking-widest px-1">
-              Comparison & Velocity
+            <h3 className="text-xs font-medium text-stone-400 px-1">
+              Weekly Consistency
             </h3>
             <ComparisonGraph data={graphData} />
           </div>
         </div>
 
-        <div className="bg-white/[0.01] border border-white/5 rounded-3xl p-5 flex gap-3 items-start">
-          <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-          <p className="text-[11px] leading-relaxed text-white/40 font-sans">
-            Your streak indicator maps consecutive check-ins. Standalone completed days are highlighted in blue droplets, while streaks are wrapped in an energetic orange gradient pill. Keep up the high concentration flow!
+        <div className="bg-[#14171d] border border-white/[0.06] rounded-2xl p-4 flex gap-3 items-start">
+          <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <p className="text-xs leading-relaxed text-stone-400">
+            Streaks represent consecutive completed days. Tap any date on the calendar to mark or unmark it retroactively if you forgot to check in.
           </p>
         </div>
       </div>

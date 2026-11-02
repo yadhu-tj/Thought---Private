@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LocalRecord {
   count: number;
@@ -62,11 +61,10 @@ export function StreakCalendar({ records, onToggleDayComplete }: StreakCalendarP
   });
 
   const getDayStatus = (dateStr: string) => {
-    if (!dateStr) return { completed: false, count: 0 };
+    if (!dateStr) return { completed: false };
     const rec = records[dateStr];
     return {
-      completed: rec?.completed || false,
-      count: rec?.count || 0
+      completed: Boolean(rec?.completed),
     };
   };
 
@@ -90,105 +88,84 @@ export function StreakCalendar({ records, onToggleDayComplete }: StreakCalendarP
   const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
 
   return (
-    <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    <div className="bg-[#14171d] border border-white/[0.07] rounded-2xl p-6 relative">
       <div className="flex items-center justify-between mb-6">
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handlePrevMonth}
-          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:border-white/20 transition-all cursor-pointer"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </motion.button>
-
-        <h3 className="font-sans font-medium text-base tracking-wider text-[#F5F5F5]">
+        <h3 className="font-semibold text-base text-white">
           {monthNames[month]} {year}
         </h3>
 
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handleNextMonth}
-          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:border-white/20 transition-all cursor-pointer"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </motion.button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handlePrevMonth}
+            aria-label="Previous month"
+            className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleNextMonth}
+            aria-label="Next month"
+            className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-y-3.5 gap-x-1 text-center relative">
+      <div className="grid grid-cols-7 gap-y-2 gap-x-1 text-center relative">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-          <div key={day} className="text-[11px] font-mono font-medium text-white/30 uppercase tracking-widest pb-2">
+          <div key={day} className="text-xs font-medium text-stone-500 pb-2">
             {day}
           </div>
         ))}
 
         {weeks.map((week, wIdx) => {
           return (
-            <div key={wIdx} className="col-span-7 grid grid-cols-7 gap-x-1 relative h-10 items-center">
+            <div key={wIdx} className="col-span-7 grid grid-cols-7 gap-x-1 relative h-9 items-center">
               {week.map((item, dIdx) => {
                 const { dayNum, dateStr } = item;
-                if (!dayNum) return <div key={dIdx} className="h-10" />;
+                if (!dayNum) return <div key={dIdx} className="h-9" />;
 
                 const status = getDayStatus(dateStr);
                 const streakType = getStreakType(wIdx, dIdx, dateStr);
                 const isToday = dateStr === todayStr;
 
-                let cellBgClass = "";
-                let cellTextClass = "text-[#F5F5F5]/40 hover:text-white/80";
-
-                if (status.count > 0 && !status.completed) {
-                  cellTextClass = "text-amber-500 font-bold";
-                }
-
-                if (isToday) {
-                  cellBgClass = "bg-white/10 border border-white/20 rounded-full w-9 h-9 mx-auto flex items-center justify-center";
-                  cellTextClass = "text-white font-bold";
-                }
-
                 return (
                   <div
                     key={dIdx}
-                    className="relative h-10 flex items-center justify-center cursor-pointer select-none"
+                    className="relative h-9 flex items-center justify-center cursor-pointer select-none"
                     onClick={() => onToggleDayComplete(dateStr)}
                   >
+                    {/* Continuous streak connector */}
                     {streakType === 'start' && (
-                      <div className="absolute left-0 right-0 h-9 bg-gradient-to-r from-orange-500 to-amber-500 rounded-l-full border-t border-b border-l border-amber-400 z-10" style={{ right: '-4px' }}>
-                        <div className="absolute top-1 left-2.5 w-1 h-1 bg-white/40 rotate-45" />
-                      </div>
+                      <div className="absolute left-1 right-0 h-8 bg-emerald-950/80 border-y border-l border-emerald-500/40 rounded-l-lg z-0" style={{ right: '-4px' }} />
                     )}
                     {streakType === 'middle' && (
-                      <div className="absolute left-0 right-0 h-9 bg-gradient-to-r from-orange-500 to-amber-500 border-t border-b border-amber-400 z-10" style={{ left: '-4px', right: '-4px' }} />
+                      <div className="absolute left-0 right-0 h-8 bg-emerald-950/80 border-y border-emerald-500/40 z-0" style={{ left: '-4px', right: '-4px' }} />
                     )}
                     {streakType === 'end' && (
-                      <div className="absolute left-0 right-0 h-9 bg-gradient-to-r from-orange-500 to-amber-500 rounded-r-full border-t border-b border-r border-amber-400 z-10" style={{ left: '-4px' }}>
-                        <div className="absolute bottom-1 right-2.5 w-1 h-1 bg-white/40 rotate-45" />
-                      </div>
+                      <div className="absolute left-0 right-1 h-8 bg-emerald-950/80 border-y border-r border-emerald-500/40 rounded-r-lg z-0" style={{ left: '-4px' }} />
                     )}
-
                     {streakType === 'standalone' && (
-                      <div className="absolute z-20 flex flex-col items-center justify-center">
-                        <svg viewBox="0 0 36 42" className="w-9 h-11 text-[#38bdf8] fill-current drop-shadow-[0_4px_10px_rgba(56,189,248,0.35)] animate-[bounce_2s_infinite]">
-                          <path d="M18 0C8.06 0 0 8.06 0 18c0 10 18 24 18 24s18-14 18-24C36 8.06 27.94 0 18 0z" />
-                        </svg>
-                        <span className="absolute text-slate-950 font-bold text-xs font-sans top-2.5">
-                          {dayNum}
-                        </span>
-                      </div>
+                      <div className="absolute w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 z-0" />
                     )}
 
-                    {streakType !== 'standalone' && (
-                      <span className={`relative z-20 text-xs font-medium ${streakType !== 'none' ? 'text-slate-950 font-bold' : cellTextClass} ${isToday && streakType === 'none' ? cellBgClass : ''}`}>
-                        {streakType === 'none' && isToday ? (
-                          <span className="flex items-center justify-center w-full h-full">{dayNum}</span>
-                        ) : (
-                          dayNum
-                        )}
-                      </span>
+                    {/* Today indicator if not completed */}
+                    {isToday && streakType === 'none' && (
+                      <div className="absolute w-8 h-8 rounded-lg border border-white/30 z-0" />
                     )}
 
-                    {status.count > 0 && streakType === 'none' && !isToday && (
-                      <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-amber-500" />
-                    )}
+                    <span
+                      className={`relative z-10 text-xs font-mono tabular-nums ${
+                        status.completed
+                          ? "text-emerald-300 font-semibold"
+                          : isToday
+                          ? "text-white font-semibold"
+                          : "text-stone-400 hover:text-white"
+                      }`}
+                    >
+                      {dayNum}
+                    </span>
                   </div>
                 );
               })}
@@ -197,18 +174,17 @@ export function StreakCalendar({ records, onToggleDayComplete }: StreakCalendarP
         })}
       </div>
 
-      <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-white/40">
+      <div className="mt-5 pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-stone-400">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 bg-gradient-to-r from-orange-500 to-amber-500 border border-amber-400 rounded-full" />
-          <span>Active Streak</span>
+          <div className="w-2.5 h-2.5 bg-emerald-500 rounded" />
+          <span>Completed</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 bg-sky-400 rounded-full" />
-          <span>Completed Days</span>
+          <div className="w-2.5 h-2.5 border border-white/30 rounded" />
+          <span>Today</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
-          <span>Thoughts Logged</span>
+          <span className="text-stone-500">Tap date to edit</span>
         </div>
       </div>
     </div>

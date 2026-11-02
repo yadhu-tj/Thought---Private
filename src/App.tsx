@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Grid, Calendar, Flame, Trophy, Sparkles, Settings, Loader2, AlertCircle, Lock, Menu, X, BookOpen } from 'lucide-react';
+import { CheckCircle2, Grid, Calendar, Flame, Settings, Loader2, AlertCircle, Lock, Menu, X, Check } from 'lucide-react';
 import { CounterPage } from './components/CounterPage';
 import { BentoGrid, DayRecord } from './components/BentoGrid';
 import { InsightsPage } from './components/InsightsPage';
-import { NotesPage } from './components/NotesPage';
 
 interface LocalRecord {
   count: number;
@@ -21,7 +20,7 @@ function getLocalDateString(date: Date): string {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'counter' | 'grid' | 'insights' | 'notes'>('counter');
+  const [activeTab, setActiveTab] = useState<'counter' | 'grid' | 'insights'>('counter');
   const [records, setRecords] = useState<RecordsMap>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -48,13 +47,11 @@ export default function App() {
   const handleSettingsAttempt = () => {
     setMobileMenuOpen(false);
     if (!savedPin) {
-      // No PIN set yet — prompt to create one
       setIsSettingNewPin(true);
       setPinInput("");
       setPinError(false);
       setIsPinModalOpen(true);
     } else {
-      // PIN exists — prompt to enter it
       setIsSettingNewPin(false);
       setPinInput("");
       setPinError(false);
@@ -93,20 +90,18 @@ export default function App() {
       }
     });
     if (!res.ok) {
-      if (res.status === 401) throw new Error("Invalid GitHub Token (Unauthorized)");
-      if (res.status === 404) throw new Error("Gist not found. Check the Gist ID");
-      throw new Error(`Failed to fetch Gist (${res.status})`);
+      if (res.status === 401) throw new Error("Invalid GitHub Token");
+      if (res.status === 404) throw new Error("Gist not found");
+      throw new Error(`Sync error (${res.status})`);
     }
     const gist = await res.json();
     const fileName = "thought-tracker-records.json";
     const file = gist.files[fileName];
-    if (!file) {
-      return {};
-    }
+    if (!file) return {};
     try {
       return JSON.parse(file.content);
     } catch {
-      throw new Error("Gist file contains invalid JSON data");
+      throw new Error("Invalid JSON in Gist");
     }
   };
 
@@ -128,7 +123,7 @@ export default function App() {
       })
     });
     if (!res.ok) {
-      throw new Error(`Failed to write to Gist (${res.status})`);
+      throw new Error(`Failed to save to Gist (${res.status})`);
     }
   };
 
@@ -157,11 +152,7 @@ export default function App() {
       setRecords((prev) => {
         const merged = mergeRecords(prev, remoteData);
         localStorage.setItem("thought-tracker-records", JSON.stringify(merged));
-        
-        updateGistData(pat, id, merged).catch(err => {
-          console.error("Auto push on merge failed", err);
-        });
-        
+        updateGistData(pat, id, merged).catch(console.error);
         return merged;
       });
       setSyncStatus('synced');
@@ -171,7 +162,6 @@ export default function App() {
     }
   };
 
-  // Load records and trigger pull on mount
   useEffect(() => {
     const raw = localStorage.getItem("thought-tracker-records");
     let localData: RecordsMap = {};
@@ -193,7 +183,7 @@ export default function App() {
         setRecords(merged);
         localStorage.setItem("thought-tracker-records", JSON.stringify(merged));
         setSyncStatus('synced');
-        updateGistData(pat, id, merged).catch(e => console.error(e));
+        updateGistData(pat, id, merged).catch(console.error);
       }).catch((err) => {
         setSyncStatus('error');
         setSyncErrorMessage(err.message || "Failed to sync");
@@ -201,10 +191,8 @@ export default function App() {
     }
   }, []);
 
-  // Debounced push effect on record changes
   useEffect(() => {
     if (!gitPat || !gistId || !pendingSyncData) return;
-    
     const timeout = setTimeout(() => {
       setSyncStatus('syncing');
       updateGistData(gitPat, gistId, pendingSyncData)
@@ -214,37 +202,25 @@ export default function App() {
         })
         .catch((err) => {
           setSyncStatus('error');
-          setSyncErrorMessage(err.message || "Failed to save records");
+          setSyncErrorMessage(err.message || "Failed to save");
         });
     }, 2000);
-
     return () => clearTimeout(timeout);
   }, [pendingSyncData, gitPat, gistId]);
 
-  const incrementTodayCount = () => {
+  const toggleToday = () => {
     const todayStr = getLocalDateString(new Date());
-    setRecords((prev) => {
-      const copy = { ...prev };
-      const current = copy[todayStr] || { count: 0, completed: false };
-      copy[todayStr] = {
-        ...current,
-        count: current.count + 1,
-      };
-      localStorage.setItem("thought-tracker-records", JSON.stringify(copy));
-      if (gitPat && gistId) {
-        setPendingSyncData(copy);
-      }
-      return copy;
-    });
+    toggleDayComplete(todayStr);
   };
 
   const toggleDayComplete = (dateStr: string) => {
     setRecords((prev) => {
       const copy = { ...prev };
       const current = copy[dateStr] || { count: 0, completed: false };
+      const nextCompleted = !current.completed;
       copy[dateStr] = {
-        ...current,
-        completed: !current.completed,
+        count: nextCompleted ? 1 : 0,
+        completed: nextCompleted,
       };
       localStorage.setItem("thought-tracker-records", JSON.stringify(copy));
       if (gitPat && gistId) {
@@ -283,7 +259,7 @@ export default function App() {
         dateStr,
         label,
         fullLabel,
-        count: rec.count,
+        count: rec.completed ? 1 : 0,
         completed: rec.completed,
       });
     }
@@ -292,290 +268,211 @@ export default function App() {
   };
 
   const daysList = getDaysList();
-  const currentTodayCount = records[getLocalDateString(new Date())]?.count || 0;
-  const totalWeeklyThoughts = daysList.reduce((acc, d) => acc + d.count, 0);
+  const todayStr = getLocalDateString(new Date());
+  const isTodayCompleted = Boolean(records[todayStr]?.completed);
   const totalCompletedDays = daysList.filter((d) => d.completed).length;
 
-  return (
-    <div className="bg-[#050505] min-h-screen text-[#F5F5F5] flex flex-col md:flex-row font-sans select-none overflow-hidden relative selection:bg-indigo-500/30">
-      {/* Decorative Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[140px] pointer-events-none" />
+  const activeStreak = (() => {
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = getLocalDateString(d);
 
+      const rec = records[dateStr];
+      if (rec?.completed) {
+        streak++;
+      } else if (i === 0) {
+        continue;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  })();
+
+  const totalRegisteredAllTime = (Object.values(records) as LocalRecord[]).filter((r) => r.completed).length;
+
+  return (
+    <div className="bg-[#0c0e12] min-h-screen text-[#f3f4f6] flex flex-col md:flex-row font-sans select-none overflow-hidden relative">
       {/* Desktop Sidebar Navigation */}
-      <aside className="hidden md:flex flex-col w-72 bg-[#0A0A0A] border-r border-white/5 h-screen p-6 shrink-0 z-40 justify-between">
-        <div className="space-y-8">
-          <div className="flex items-center gap-3 px-2">
-            <div className="p-2.5 bg-indigo-500/10 rounded-2xl text-indigo-400 border border-indigo-500/15">
-              <Brain className="w-6 h-6 animate-pulse" />
+      <aside className="hidden md:flex flex-col w-64 bg-[#121419] border-r border-white/[0.07] h-screen p-5 shrink-0 z-40 justify-between">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 px-1 py-1">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">Thought Tracker</h1>
-              <span className="text-[9px] font-mono text-indigo-400 font-semibold tracking-widest block uppercase">V.1.0 // ACTIVE</span>
+              <h1 className="text-sm font-semibold tracking-tight text-white">Daily Tracker</h1>
+              <span className="text-[11px] text-stone-400 block">Single-tap habits</span>
             </div>
           </div>
 
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             <button
               onClick={() => setActiveTab('counter')}
-              className={`w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl relative cursor-pointer text-xs uppercase tracking-wider font-mono font-semibold transition-all duration-200 ${
-                activeTab === 'counter' ? "text-white bg-white/[0.04] border border-white/10 shadow-md" : "text-white/40 hover:text-white/80 hover:bg-white/[0.02]"
+              className={`w-full flex items-center gap-3 py-2.5 px-3 rounded-xl cursor-pointer text-xs font-medium transition-colors ${
+                activeTab === 'counter'
+                  ? "text-white bg-white/[0.07] border border-white/[0.08]"
+                  : "text-stone-400 hover:text-white hover:bg-white/[0.03]"
               }`}
             >
-              <Brain className="w-4 h-4 text-indigo-400" />
-              <span>Counter</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Today Check-in</span>
             </button>
             <button
               onClick={() => setActiveTab('grid')}
-              className={`w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl relative cursor-pointer text-xs uppercase tracking-wider font-mono font-semibold transition-all duration-200 ${
-                activeTab === 'grid' ? "text-white bg-white/[0.04] border border-white/10 shadow-md" : "text-white/40 hover:text-white/80 hover:bg-white/[0.02]"
+              className={`w-full flex items-center gap-3 py-2.5 px-3 rounded-xl cursor-pointer text-xs font-medium transition-colors ${
+                activeTab === 'grid'
+                  ? "text-white bg-white/[0.07] border border-white/[0.08]"
+                  : "text-stone-400 hover:text-white hover:bg-white/[0.03]"
               }`}
             >
-              <Grid className="w-4 h-4 text-pink-400" />
-              <span>Weekly</span>
+              <Grid className="w-4 h-4 text-stone-400" />
+              <span>Weekly Bento</span>
             </button>
             <button
               onClick={() => setActiveTab('insights')}
-              className={`w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl relative cursor-pointer text-xs uppercase tracking-wider font-mono font-semibold transition-all duration-200 ${
-                activeTab === 'insights' ? "text-white bg-white/[0.04] border border-white/10 shadow-md" : "text-white/40 hover:text-white/80 hover:bg-white/[0.02]"
+              className={`w-full flex items-center gap-3 py-2.5 px-3 rounded-xl cursor-pointer text-xs font-medium transition-colors ${
+                activeTab === 'insights'
+                  ? "text-white bg-white/[0.07] border border-white/[0.08]"
+                  : "text-stone-400 hover:text-white hover:bg-white/[0.03]"
               }`}
             >
-              <Calendar className="w-4 h-4 text-amber-400" />
-              <span>Insights</span>
+              <Calendar className="w-4 h-4 text-stone-400" />
+              <span>History & Streaks</span>
             </button>
-
-            <button
-              onClick={() => setActiveTab('notes')}
-              className={`w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl relative cursor-pointer text-xs uppercase tracking-wider font-mono font-semibold transition-all duration-200 ${
-                activeTab === 'notes' ? "text-white bg-white/[0.04] border border-white/10 shadow-md" : "text-white/40 hover:text-white/80 hover:bg-white/[0.02]"
-              }`}
-            >
-              <BookOpen className="w-4 h-4 text-cyan-400" />
-              <span>Notes</span>
-            </button>
-            
-            {/* Sync Settings Tab Button */}
             <button
               onClick={handleSettingsAttempt}
-              className="w-full flex items-center gap-3.5 py-3.5 px-4 rounded-2xl cursor-pointer text-xs uppercase tracking-wider font-mono font-semibold text-white/40 hover:text-white/80 hover:bg-white/[0.02] transition-all duration-200"
+              className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl cursor-pointer text-xs font-medium text-stone-400 hover:text-white hover:bg-white/[0.03] transition-colors"
             >
-              <Settings className="w-4 h-4 text-indigo-400/80" />
-              <span>Sync Settings</span>
+              <Settings className="w-4 h-4 text-stone-400" />
+              <span>Cloud Sync</span>
             </button>
           </nav>
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-white/5">
-          <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-3">
-            <div className="flex justify-between items-center text-[10px] font-mono text-white/40">
-              <span>TODAY'S INTENSITY</span>
-              <span className="text-white font-bold">{currentTodayCount}</span>
+        {/* Sidebar Footer Widget */}
+        <div className="space-y-3 pt-4 border-t border-white/[0.06]">
+          <div className="bg-[#181b22] border border-white/[0.06] rounded-xl p-3.5 space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-stone-400">Today</span>
+              <span className={isTodayCompleted ? "text-emerald-400 font-medium" : "text-stone-400"}>
+                {isTodayCompleted ? "Done" : "Pending"}
+              </span>
             </div>
-            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-gradient-to-r from-indigo-500 to-pink-500 h-full rounded-full transition-all duration-500" 
-                style={{ width: `${Math.min((currentTodayCount / 15) * 100, 100)}%` }}
-              />
-            </div>
+            <button
+              onClick={toggleToday}
+              className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
+                isTodayCompleted
+                  ? "bg-white/[0.04] text-stone-300 hover:text-white hover:bg-white/[0.08]"
+                  : "bg-emerald-500 hover:bg-emerald-400 text-white font-semibold"
+              }`}
+            >
+              {isTodayCompleted ? "Undo check-in" : "Mark as done"}
+            </button>
           </div>
           
-          <div className="flex items-center justify-between text-[9px] font-mono text-white/30 px-1">
-            <span>System Status</span>
-            <span className="flex items-center gap-1 font-semibold uppercase">
-              {syncStatus === 'synced' && (
-                <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="text-emerald-500">Synced</span>
-                </>
-              )}
-              {syncStatus === 'syncing' && (
-                <>
-                  <Loader2 className="w-3 h-3 text-indigo-400 animate-spin" />
-                  <span className="text-indigo-400">Syncing</span>
-                </>
-              )}
-              {syncStatus === 'error' && (
-                <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                  <span className="text-rose-500">Err</span>
-                </>
-              )}
-              {syncStatus === 'idle' && (
-                <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span className="text-amber-500">Connected</span>
-                </>
-              )}
-              {syncStatus === 'unconfigured' && (
-                <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  <span className="text-white/40">Local</span>
-                </>
-              )}
+          <div className="flex items-center justify-between text-xs text-stone-500 px-1">
+            <span>Sync</span>
+            <span className="flex items-center gap-1.5">
+              {syncStatus === 'synced' && <span className="text-emerald-400">Up to date</span>}
+              {syncStatus === 'syncing' && <span className="text-stone-400">Syncing...</span>}
+              {syncStatus === 'error' && <span className="text-rose-400">Sync error</span>}
+              {syncStatus === 'idle' && <span className="text-stone-400">Connected</span>}
+              {syncStatus === 'unconfigured' && <span className="text-stone-500">Local storage</span>}
             </span>
           </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 h-screen overflow-hidden flex flex-col relative bg-[#050505]">
-        {/* Mobile Header with Hamburger */}
-        <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#0A0A0A] z-30">
+      <main className="flex-1 h-screen overflow-hidden flex flex-col relative bg-[#0c0e12]">
+        {/* Mobile Header Bar */}
+        <div className="md:hidden flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[#121419] z-30">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/15">
-              <Brain className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
-            <h1 className="text-sm font-bold">Thought Tracker</h1>
+            <h1 className="text-sm font-semibold text-white">Daily Tracker</h1>
           </div>
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+            onClick={handleSettingsAttempt}
+            aria-label="Settings"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-stone-400 hover:text-white"
           >
-            {mobileMenuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
+            <Settings className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Mobile Hamburger Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="md:hidden absolute top-14 left-0 right-0 bg-[#0A0A0A] border-b border-white/5 z-30 p-4 space-y-2"
-            >
-              <button
-                onClick={() => {
-                  setActiveTab('counter');
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
-                  activeTab === 'counter' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
-                }`}
-              >
-                <Brain className="w-4 h-4 text-indigo-400" />
-                Counter
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('grid');
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
-                  activeTab === 'grid' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
-                }`}
-              >
-                <Grid className="w-4 h-4 text-pink-400" />
-                Weekly
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('insights');
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
-                  activeTab === 'insights' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
-                }`}
-              >
-                <Calendar className="w-4 h-4 text-amber-400" />
-                Insights
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('notes');
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold transition-all ${
-                  activeTab === 'notes' ? "text-white bg-white/[0.04] border border-white/10" : "text-white/60 hover:text-white"
-                }`}
-              >
-                <BookOpen className="w-4 h-4 text-cyan-400" />
-                Notes
-              </button>
-              <button
-                onClick={() => {
-                  handleSettingsAttempt();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-mono font-semibold text-white/60 hover:text-white transition-all"
-              >
-                <Settings className="w-4 h-4 text-indigo-400" />
-                Sync Settings
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="flex-1 overflow-hidden flex flex-col relative">
+        {/* Tab Views */}
+        <div className="flex-1 overflow-hidden flex flex-col relative pb-16 md:pb-0">
           <AnimatePresence mode="wait">
             {activeTab === 'counter' ? (
               <motion.div
                 key="counter"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ type: "spring", stiffness: 240, damping: 22 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="flex-1 flex flex-col h-full"
               >
                 <CounterPage
-                  count={currentTodayCount}
-                  onIncrement={incrementTodayCount}
+                  isCompleted={isTodayCompleted}
+                  streak={activeStreak}
+                  totalCompleted={totalRegisteredAllTime}
+                  onToggleToday={toggleToday}
                   onNavigateToGrid={() => setActiveTab('grid')}
                 />
               </motion.div>
             ) : activeTab === 'grid' ? (
               <motion.div
                 key="grid"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ type: "spring", stiffness: 240, damping: 22 }}
-                className="flex-1 flex flex-col h-full overflow-y-auto px-6 py-6 md:px-12 md:py-10 pb-28 md:pb-12 bg-[#0A0A0A]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex-1 flex flex-col h-full overflow-y-auto px-6 py-6 md:px-12 md:py-10 pb-28 md:pb-12 bg-[#0c0e12]"
               >
                 <div className="space-y-6 mb-6">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <h2 className="text-3xl md:text-4xl font-light tracking-tight text-[#F5F5F5]">
-                        Weekly Velocity
+                      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
+                        Weekly Overview
                       </h2>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-400">
-                        Metrics & Distribution
+                      <p className="text-xs text-stone-400">
+                        Check-in distribution across the last 7 days
                       </p>
                     </div>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setActiveTab('insights')}
-                      className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-[#050505] hover:bg-white/[0.04] cursor-pointer"
-                    >
-                      <Calendar className="w-4 h-4 text-indigo-400" />
-                    </motion.button>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-5 flex items-center gap-4 col-span-2 md:col-span-2">
-                      <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/15">
-                        <Flame className="w-4 h-4" />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+                    <div className="bg-[#14171d] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3.5 col-span-2">
+                      <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
+                        <Flame className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="text-xl md:text-2xl font-bold font-sans tracking-tight">{totalWeeklyThoughts}</div>
-                        <div className="text-[9px] text-white/40 font-bold uppercase tracking-widest font-mono">
-                          Frequency
+                        <div className="text-xl font-bold font-mono tracking-tight text-white tabular-nums">
+                          {activeStreak} {activeStreak === 1 ? "day" : "days"}
+                        </div>
+                        <div className="text-xs text-stone-400 font-medium">
+                          Active streak
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-5 flex items-center gap-4 col-span-2 md:col-span-2">
-                      <div className="p-2.5 bg-pink-500/10 rounded-xl text-pink-400 border border-pink-500/15">
-                        <Trophy className="w-4 h-4" />
+                    <div className="bg-[#14171d] border border-white/[0.07] rounded-2xl p-4 flex items-center gap-3.5 col-span-2">
+                      <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
                       <div>
-                        <div className="text-xl md:text-2xl font-bold font-sans tracking-tight">{totalCompletedDays}/7</div>
-                        <div className="text-[9px] text-white/40 font-bold uppercase tracking-widest font-mono">
-                          Distribution
+                        <div className="text-xl font-bold font-mono tracking-tight text-white tabular-nums">
+                          {totalCompletedDays} of 7 days
+                        </div>
+                        <div className="text-xs text-stone-400 font-medium">
+                          Weekly completion
                         </div>
                       </div>
                     </div>
@@ -584,13 +481,13 @@ export default function App() {
 
                 <BentoGrid days={daysList} onToggleComplete={toggleDayComplete} />
               </motion.div>
-            ) : activeTab === 'insights' ? (
+            ) : (
               <motion.div
                 key="insights"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ type: "spring", stiffness: 240, damping: 22 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="flex-1 flex flex-col h-full"
               >
                 <InsightsPage
@@ -600,189 +497,91 @@ export default function App() {
                   onNavigateToCounter={() => setActiveTab('counter')}
                 />
               </motion.div>
-            ) : (
-              <motion.div
-                key="notes"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ type: "spring", stiffness: 240, damping: 22 }}
-                className="flex-1 flex flex-col h-full overflow-hidden"
-              >
-                <NotesPage />
-              </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Mobile Navigation Pill */}
-        <div className="md:hidden absolute bottom-6 left-6 right-6 z-40 bg-[#050505]/80 backdrop-blur-xl border border-white/10 rounded-2xl py-2 px-4 flex justify-around items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+        {/* Mobile Fixed Bottom Navigation Bar (Apple HIG 3-tab anchor) */}
+        <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#121419]/95 backdrop-blur-md border-t border-white/[0.08] h-16 grid grid-cols-3 items-center">
           <button
             onClick={() => setActiveTab('counter')}
-            className={`flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer ${
-              activeTab === 'counter' ? "text-white" : "text-white/40 hover:text-white/60"
+            className={`flex flex-col items-center justify-center h-full min-h-[44px] cursor-pointer transition-colors ${
+              activeTab === 'counter' ? "text-emerald-400" : "text-stone-400 hover:text-white"
             }`}
           >
-            {activeTab === 'counter' && (
-              <motion.div
-                layoutId="navPill"
-                className="absolute inset-0 bg-white/[0.03] border border-white/10 rounded-xl"
-                transition={{ type: "spring", stiffness: 350, damping: 25 }}
-              />
-            )}
-            <Brain className="w-4 h-4 relative z-10" />
-            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
-              Counter
-            </span>
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Today</span>
           </button>
 
           <button
             onClick={() => setActiveTab('grid')}
-            className={`flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer ${
-              activeTab === 'grid' ? "text-white" : "text-white/40 hover:text-white/60"
+            className={`flex flex-col items-center justify-center h-full min-h-[44px] cursor-pointer transition-colors ${
+              activeTab === 'grid' ? "text-emerald-400" : "text-stone-400 hover:text-white"
             }`}
           >
-            {activeTab === 'grid' && (
-              <motion.div
-                layoutId="navPill"
-                className="absolute inset-0 bg-white/[0.03] border border-white/10 rounded-xl"
-                transition={{ type: "spring", stiffness: 350, damping: 25 }}
-              />
-            )}
-            <Grid className="w-4 h-4 relative z-10" />
-            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
-              Weekly
-            </span>
+            <Grid className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Weekly</span>
           </button>
 
           <button
             onClick={() => setActiveTab('insights')}
-            className={`flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer ${
-              activeTab === 'insights' ? "text-white" : "text-white/40 hover:text-white/60"
+            className={`flex flex-col items-center justify-center h-full min-h-[44px] cursor-pointer transition-colors ${
+              activeTab === 'insights' ? "text-emerald-400" : "text-stone-400 hover:text-white"
             }`}
           >
-            {activeTab === 'insights' && (
-              <motion.div
-                layoutId="navPill"
-                className="absolute inset-0 bg-white/[0.03] border border-white/10 rounded-xl"
-                transition={{ type: "spring", stiffness: 350, damping: 25 }}
-              />
-            )}
-            <Calendar className="w-4 h-4 relative z-10" />
-            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
-              Insights
-            </span>
+            <Calendar className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">History</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('notes')}
-            className={`flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer ${
-              activeTab === 'notes' ? "text-white" : "text-white/40 hover:text-white/60"
-            }`}
-          >
-            {activeTab === 'notes' && (
-              <motion.div
-                layoutId="navPill"
-                className="absolute inset-0 bg-white/[0.03] border border-white/10 rounded-xl"
-                transition={{ type: "spring", stiffness: 350, damping: 25 }}
-              />
-            )}
-            <BookOpen className="w-4 h-4 relative z-10" />
-            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
-              Notes
-            </span>
-          </button>
-
-          <button
-            onClick={handleSettingsAttempt}
-            className="flex flex-col items-center gap-1.5 py-1.5 px-4 rounded-xl relative cursor-pointer text-white/40 hover:text-white/60"
-          >
-            <Settings className="w-4 h-4 relative z-10" />
-            <span className="text-[8px] uppercase font-mono tracking-[0.2em] font-bold relative z-10">
-              Settings
-            </span>
-          </button>
-        </div>
+        </nav>
       </main>
 
       {/* Sync Settings Modal */}
       <AnimatePresence>
         {isSettingsOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Modal backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSettingsOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
             />
             
-            {/* Modal card */}
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", stiffness: 350, damping: 26 }}
-              className="bg-[#0D0D0D]/90 border border-white/10 rounded-[32px] p-6 w-full max-w-md relative z-10 shadow-[0_30px_70px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-[#14171d] border border-white/[0.1] rounded-2xl p-6 w-full max-w-md relative z-10 shadow-2xl flex flex-col max-h-[90vh]"
             >
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" />
-
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-5">
                 <div>
-                  <h3 className="text-xl font-light tracking-tight text-white flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-indigo-400" />
+                  <h3 className="text-lg font-semibold text-white">
                     Cloud Sync
                   </h3>
-                  <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest block mt-0.5">
-                    GitHub Gist Integration
+                  <span className="text-xs text-stone-400">
+                    GitHub Gist backup
                   </span>
                 </div>
                 <button
                   onClick={() => setIsSettingsOpen(false)}
-                  className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 cursor-pointer text-white/60 hover:text-white text-xs font-bold"
+                  className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-stone-400 hover:text-white cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="space-y-5 overflow-y-auto flex-1 pr-1 pb-4">
-                {/* Status Indicator */}
-                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Sync Connection</div>
-                    <div className="text-xs font-mono font-semibold flex items-center gap-1.5 mt-1">
-                      {syncStatus === 'synced' && (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-emerald-400">Connected & Synced</span>
-                        </>
-                      )}
-                      {syncStatus === 'syncing' && (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
-                          <span className="text-indigo-400">Synchronizing...</span>
-                        </>
-                      )}
-                      {syncStatus === 'error' && (
-                        <>
-                          <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-                          <span className="text-rose-400">Connection Error</span>
-                        </>
-                      )}
-                      {syncStatus === 'idle' && (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-amber-500" />
-                          <span className="text-amber-400">Ready to Sync</span>
-                        </>
-                      )}
-                      {syncStatus === 'unconfigured' && (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-white/20" />
-                          <span className="text-white/40">Not Configured</span>
-                        </>
-                      )}
-                    </div>
+              <div className="space-y-4 overflow-y-auto flex-1 pr-1 pb-2">
+                <div className="bg-[#101217] border border-white/[0.06] rounded-xl p-3.5 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-stone-400 block text-[11px]">Status</span>
+                    <span className="font-medium text-white mt-0.5 block">
+                      {syncStatus === 'synced' && "Connected & Synced"}
+                      {syncStatus === 'syncing' && "Syncing..."}
+                      {syncStatus === 'error' && "Sync Error"}
+                      {syncStatus === 'idle' && "Ready to sync"}
+                      {syncStatus === 'unconfigured' && "Not configured"}
+                    </span>
                   </div>
 
                   {syncStatus !== 'unconfigured' && (
@@ -791,7 +590,7 @@ export default function App() {
                         await triggerSyncPull();
                       }}
                       disabled={syncStatus === 'syncing'}
-                      className="px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/25 text-[10px] font-mono font-semibold text-indigo-400 disabled:opacity-40 transition-all cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-xs font-medium text-emerald-400 disabled:opacity-50 cursor-pointer"
                     >
                       Sync Now
                     </button>
@@ -799,57 +598,50 @@ export default function App() {
                 </div>
 
                 {syncErrorMessage && (
-                  <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-mono p-3.5 rounded-xl leading-relaxed">
+                  <div className="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs p-3 rounded-xl">
                     {syncErrorMessage}
                   </div>
                 )}
 
-                {/* Form Fields */}
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-mono text-white/40 uppercase tracking-widest block px-1">
-                      GitHub Personal Access Token (PAT)
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-stone-400 block mb-1.5">
+                      GitHub Token (PAT)
                     </label>
                     <input
                       type="password"
                       value={gitPat}
                       onChange={(e) => setGitPat(e.target.value)}
-                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxx"
-                      className="w-full bg-[#141414] border border-white/10 rounded-2xl py-3 px-4 text-sm text-white placeholder-white/20 focus:outline-none focus:border-indigo-500/50 font-mono transition-all"
+                      placeholder="ghp_..."
+                      className="w-full bg-[#101217] border border-white/[0.08] rounded-xl py-2.5 px-3.5 text-xs text-white placeholder-stone-600 focus:outline-none focus:border-emerald-500/50 font-mono"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-mono text-white/40 uppercase tracking-widest block px-1">
+                  <div>
+                    <label className="text-xs font-medium text-stone-400 block mb-1.5">
                       Gist ID
                     </label>
                     <input
                       type="text"
                       value={gistId}
                       onChange={(e) => setGistId(e.target.value)}
-                      placeholder="32-character hex Gist ID"
-                      className="w-full bg-[#141414] border border-white/10 rounded-2xl py-3 px-4 text-sm text-white placeholder-white/20 focus:outline-none focus:border-indigo-500/50 font-mono transition-all"
+                      placeholder="Gist ID"
+                      className="w-full bg-[#101217] border border-white/[0.08] rounded-xl py-2.5 px-3.5 text-xs text-white placeholder-stone-600 focus:outline-none focus:border-emerald-500/50 font-mono"
                     />
                   </div>
                 </div>
 
-                {/* Setup Instructions */}
-                <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 space-y-2 text-[10px] font-sans text-white/40 leading-relaxed">
-                  <span className="font-mono text-white/60 font-semibold block uppercase tracking-wider">
-                    How to Set Up:
-                  </span>
-                  <ol className="list-decimal pl-4 space-y-1">
-                    <li>Go to your GitHub Account Settings &gt; Developer settings &gt; Personal access tokens &gt; **Tokens (classic)**.</li>
-                    <li>Generate a new token with the **gist** scope checkbox checked, then copy it.</li>
-                    <li>Go to [gist.github.com](https://gist.github.com) and create a **Secret Gist**.</li>
-                    <li>Name the file **thought-tracker-records.json** and put `{}` as the initial content.</li>
-                    <li>Create the gist, then copy the **Gist ID** (the long code at the end of the gist URL).</li>
-                    <li>Paste both values above and hit Save!</li>
+                <div className="bg-[#101217] border border-white/[0.05] rounded-xl p-3.5 space-y-1.5 text-xs text-stone-400">
+                  <span className="text-white font-medium block">Setup Instructions</span>
+                  <ol className="list-decimal pl-4 space-y-1 text-[11px] leading-relaxed">
+                    <li>Generate a GitHub token with the <strong>gist</strong> scope.</li>
+                    <li>Create a Secret Gist on gist.github.com named <strong>thought-tracker-records.json</strong> with <code>&#123;&#125;</code> inside.</li>
+                    <li>Copy your token and Gist ID here and click Save & Sync.</li>
                   </ol>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/5 flex gap-3 mt-4">
+              <div className="pt-4 border-t border-white/[0.06] flex gap-2.5 mt-3">
                 <button
                   onClick={() => {
                     localStorage.removeItem("thought-tracker-git-pat");
@@ -860,7 +652,7 @@ export default function App() {
                     setSyncErrorMessage("");
                     setIsSettingsOpen(false);
                   }}
-                  className="flex-1 py-3 border border-white/10 rounded-2xl bg-transparent hover:bg-white/5 font-mono text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 border border-white/[0.08] rounded-xl bg-transparent hover:bg-white/[0.04] text-xs font-medium text-stone-400 hover:text-white transition-colors cursor-pointer"
                 >
                   Disconnect
                 </button>
@@ -879,7 +671,7 @@ export default function App() {
                     triggerSyncPull(cleanPat, cleanId);
                     setIsSettingsOpen(false);
                   }}
-                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-pink-500 text-white font-mono text-xs uppercase tracking-wider font-semibold transition-all hover:shadow-[0_0_30px_rgba(129,78,247,0.4)] cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Save & Sync
                 </button>
@@ -898,34 +690,33 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => { setIsPinModalOpen(false); setPinInput(""); setPinError(false); }}
-              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              className="bg-[#0D0D0D] border border-white/10 rounded-[32px] p-8 w-full max-w-xs relative z-10 shadow-[0_30px_70px_rgba(0,0,0,0.9)] flex flex-col items-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#14171d] border border-white/[0.1] rounded-2xl p-6 w-full max-w-xs relative z-10 shadow-2xl flex flex-col items-center"
             >
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-5">
-                <Lock className="w-6 h-6 text-indigo-400" />
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4 text-emerald-400">
+                <Lock className="w-5 h-5" />
               </div>
 
-              <h3 className="text-lg font-medium text-white mb-1 tracking-tight">
+              <h3 className="text-base font-semibold text-white mb-1">
                 {isSettingNewPin ? "Create PIN" : "Enter PIN"}
               </h3>
-              <p className="text-[11px] text-white/40 font-mono mb-6 text-center">
-                {isSettingNewPin ? "Set a 4-digit numeric PIN to protect settings." : "Enter your 4-digit PIN to access settings."}
+              <p className="text-xs text-stone-400 mb-5 text-center">
+                {isSettingNewPin ? "Set a 4-digit PIN for settings." : "Enter your 4-digit PIN."}
               </p>
 
-              {/* PIN Dots Display */}
-              <div className="flex gap-3 mb-6">
+              {/* PIN Dots */}
+              <div className="flex gap-2.5 mb-5">
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                    className={`w-3.5 h-3.5 rounded-full border transition-colors ${
                       pinInput.length > i
-                        ? pinError ? "bg-rose-500 border-rose-500" : "bg-indigo-400 border-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.6)]"
+                        ? pinError ? "bg-rose-500 border-rose-500" : "bg-emerald-400 border-emerald-400"
                         : "border-white/20 bg-transparent"
                     }`}
                   />
@@ -933,37 +724,37 @@ export default function App() {
               </div>
 
               {pinError && (
-                <p className="text-rose-400 text-[10px] font-mono mb-4 animate-pulse">
-                  {isSettingNewPin ? "PIN must be at least 4 digits" : "Incorrect PIN. Try again."}
+                <p className="text-rose-400 text-xs mb-3">
+                  {isSettingNewPin ? "PIN must be 4 digits" : "Incorrect PIN"}
                 </p>
               )}
 
               {/* Numpad */}
-              <div className="grid grid-cols-3 gap-3 w-full max-w-[220px]">
+              <div className="grid grid-cols-3 gap-2 w-full max-w-[210px]">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                   <button
                     key={num}
                     onClick={() => { if (pinInput.length < 4) { setPinError(false); setPinInput(prev => prev + String(num)); } }}
-                    className="h-14 rounded-2xl bg-white/[0.04] border border-white/[0.06] text-white text-lg font-medium hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
+                    className="h-12 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 text-white text-base font-medium transition-all cursor-pointer"
                   >
                     {num}
                   </button>
                 ))}
                 <button
                   onClick={() => setPinInput(prev => prev.slice(0, -1))}
-                  className="h-14 rounded-2xl bg-white/[0.02] border border-white/[0.04] text-white/50 text-xs font-mono font-bold hover:bg-white/[0.06] active:scale-95 transition-all cursor-pointer"
+                  className="h-12 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] text-stone-400 text-xs font-medium cursor-pointer"
                 >
                   DEL
                 </button>
                 <button
                   onClick={() => { if (pinInput.length < 4) { setPinError(false); setPinInput(prev => prev + "0"); } }}
-                  className="h-14 rounded-2xl bg-white/[0.04] border border-white/[0.06] text-white text-lg font-medium hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
+                  className="h-12 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white text-base font-medium cursor-pointer"
                 >
                   0
                 </button>
                 <button
                   onClick={handlePinSubmit}
-                  className="h-14 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-mono font-bold hover:bg-indigo-500/30 active:scale-95 transition-all cursor-pointer"
+                  className="h-12 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold cursor-pointer"
                 >
                   OK
                 </button>

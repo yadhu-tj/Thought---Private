@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Flame, Trophy, Calendar, Sparkles } from 'lucide-react';
+import { Calendar, Check } from 'lucide-react';
 
 export interface DayRecord {
   dateStr: string;
@@ -16,82 +16,115 @@ interface BentoGridProps {
 
 export function BentoGrid({ days, onToggleComplete }: BentoGridProps) {
   const getCardStyle = (index: number, completed: boolean) => {
-    const isSpanned = index === 0 || index === 3 || index === 6;
+    const isPrimary = index === 0;
+    const isWeekend = index === 3 || index === 6;
+
     if (completed) {
-      if (index === 0) {
-        return "col-span-2 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-indigo-950/60 to-purple-950/40 border-indigo-500/30 shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] text-white";
+      if (isPrimary) {
+        return "col-span-2 md:col-span-2 lg:col-span-2 bg-[#12221b] border-emerald-500/35 shadow-[0_4px_24px_-8px_rgba(16,185,129,0.2)]";
       }
-      if (index === 3) {
-        return "col-span-2 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-pink-950/60 to-purple-950/40 border-pink-500/30 shadow-[0_0_25px_-5px_rgba(236,72,153,0.15)] text-white";
+      if (isWeekend) {
+        return "col-span-2 md:col-span-2 lg:col-span-2 bg-[#101b17] border-emerald-500/25";
       }
-      if (index === 6) {
-        return "col-span-2 md:col-span-1 lg:col-span-4 bg-[#6366f1] border-white/10 shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)] text-white";
-      }
-      return "col-span-1 md:col-span-1 lg:col-span-1 bg-white/[0.08] border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.05)] text-white";
+      return "col-span-1 bg-[#101b17] border-emerald-500/25";
     }
 
-    if (isSpanned) {
-      if (index === 6) {
-        return "col-span-2 md:col-span-1 lg:col-span-4 bg-[#0A0A0A] border-white/5 text-[#F5F5F5] hover:bg-white/[0.02]";
-      }
-      return "col-span-2 md:col-span-2 lg:col-span-2 bg-[#0A0A0A] border-white/5 text-[#F5F5F5] hover:bg-white/[0.02]";
+    if (isPrimary) {
+      return "col-span-2 md:col-span-2 lg:col-span-2 bg-[#14171d] border-white/[0.09] hover:border-white/[0.16]";
     }
-    return "col-span-1 md:col-span-1 lg:col-span-1 bg-white/[0.03] border-white/15 text-[#F5F5F5] hover:bg-white/[0.05]";
+    if (isWeekend) {
+      return "col-span-2 md:col-span-2 lg:col-span-2 bg-[#14171d] border-white/[0.07] hover:border-white/[0.14]";
+    }
+    return "col-span-1 bg-[#14171d] border-white/[0.07] hover:border-white/[0.14]";
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-24 md:pb-8">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 pb-24 md:pb-8">
       {days.map((day, idx) => {
-        const isSpanned = idx === 0 || idx === 3 || idx === 6;
         return (
           <motion.div
             key={day.dateStr}
             layoutId={`card-${day.dateStr}`}
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
               type: "spring",
-              stiffness: 110,
-              damping: 15,
-              delay: idx * 0.04,
+              stiffness: 140,
+              damping: 18,
+              delay: idx * 0.03,
             }}
-            className={`relative rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 ${getCardStyle(idx, day.completed)}`}
+            onClick={() => onToggleComplete(day.dateStr)}
+            className={`relative rounded-2xl border p-5 flex flex-col justify-between transition-all duration-200 cursor-pointer select-none min-h-[140px] ${getCardStyle(
+              idx,
+              day.completed
+            )}`}
           >
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-40">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-stone-400">
                     {day.label}
                   </span>
                   {idx === 0 && (
-                    <span className="flex h-1 w-1 rounded-full bg-pink-500 animate-pulse" />
+                    <span className="text-[10px] text-emerald-400 font-medium">
+                      (Current)
+                    </span>
                   )}
                 </div>
-                <h3 className="font-sans font-light text-lg tracking-tight mt-1 opacity-90">
+                <h3 className="text-base font-semibold text-white tracking-tight mt-1">
                   {day.fullLabel}
                 </h3>
               </div>
 
-              <motion.button
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => onToggleComplete(day.dateStr)}
-                className={`relative flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 ${
+              {/* Check Action Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleComplete(day.dateStr);
+                }}
+                className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                   day.completed
-                    ? "bg-white text-indigo-600 border-transparent shadow-lg"
-                    : "bg-white/5 border-white/10 text-white/40 hover:text-white"
+                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_2px_10px_rgba(16,185,129,0.3)]"
+                    : "bg-white/[0.04] border-white/[0.1] text-stone-400 hover:text-white hover:border-white/20"
                 }`}
               >
                 <AnimatePresence mode="popLayout">
                   {day.completed ? (
                     <motion.div
                       key="checked"
-                      initial={{ scale: 0, rotate: -45 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: 45 }}
-                      transition={{ type: "spring", stiffness: 220, damping: 11 }}
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: [0.8, 1.15, 1] }}
+                      exit={{ scale: 0 }}
+                      transition={{ duration: 0.28, ease: "easeOut" }}
+                      className="flex items-center justify-center w-full h-full pointer-events-none"
                     >
-                      <Check className="w-5 h-5 pointer-events-none" strokeWidth={3} />
+                      <svg viewBox="0 0 40 40" className="w-5 h-5">
+                        <motion.circle
+                          cx="20"
+                          cy="20"
+                          r="15"
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth="3.2"
+                          strokeLinecap="round"
+                          style={{ transformOrigin: "20px 20px", rotate: "-90deg" }}
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.32, ease: "easeOut" }}
+                        />
+                        <motion.path
+                          d="M 12 20.5 L 17.5 26 L 28 15"
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ delay: 0.22, duration: 0.2, ease: "easeOut" }}
+                        />
+                      </svg>
                     </motion.div>
                   ) : (
                     <motion.div
@@ -104,35 +137,27 @@ export function BentoGrid({ days, onToggleComplete }: BentoGridProps) {
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {day.completed && (
-                  <motion.span
-                    initial={{ scale: 0.8, opacity: 0.5 }}
-                    animate={{ scale: 1.8, opacity: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="absolute inset-0 border border-white rounded-full pointer-events-none"
-                  />
-                )}
-              </motion.button>
+              </button>
             </div>
 
-            <div className="flex items-end justify-between mt-4">
-              <div>
-                <span className="font-mono text-[10px] uppercase tracking-wider opacity-40 block">
-                  Logged Velocity
-                </span>
-                <div className="text-3xl font-bold font-sans mt-0.5 tracking-tighter">
-                  {day.count}
-                </div>
-              </div>
-
-              {isSpanned && (
-                <div className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center bg-white/[0.02]">
-                  {idx === 0 && <Flame className="w-4 h-4 text-orange-400" />}
-                  {idx === 3 && <Sparkles className="w-4 h-4 text-pink-400" />}
-                  {idx === 6 && <Trophy className="w-4 h-4 text-yellow-400" />}
-                </div>
-              )}
+            <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/[0.05]">
+              <span className="text-xs text-stone-400">
+                Status
+              </span>
+              <span
+                className={`text-xs font-medium flex items-center gap-1.5 ${
+                  day.completed ? "text-emerald-400" : "text-stone-400"
+                }`}
+              >
+                {day.completed ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    Done
+                  </>
+                ) : (
+                  "Pending"
+                )}
+              </span>
             </div>
           </motion.div>
         );
